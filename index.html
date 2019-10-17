@@ -1,0 +1,277 @@
+<html>
+    <head>
+        <title>Theme Generator - Recommendation-Engine Test</title>
+        <style>
+            body {
+                background: #222;
+                color: white;
+                font-family: helvetica neue;
+                text-align: center;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+            h1, h2, h3 {
+                font-weight: 200;
+            }
+            h4 {
+                color: #ccc;
+                font-weight: 400;
+            }
+            hr {
+                background-image: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0));
+                border: 0;
+                height: 1px;
+            }
+            .predicted-theme {
+                background: black;
+                border:  1px solid white;
+                border-radius:  20px;
+                display: inline-block;
+                margin: 10px;
+                padding: 10px;
+                width: 457px;
+            }
+            .editor-wrapper {
+                background: #333;
+                display: inline-block;
+                font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Inconsolata", 'Courier New', monospace;
+                font-size: 10pt;
+                font-weight: normal;
+                padding: 8px;
+                text-align: left;
+                width: 400px;
+            }
+            .star {
+                background: none;
+                border: none;
+                color: #999;
+                cursor: pointer;
+                font-size: 18pt;
+                margin: 0;
+                outline: none;
+                padding: 0;
+            }
+            .star.gold {
+                color: goldenrod;
+            }
+            li {
+                color: #6f6f6f;
+                list-style-type: none;
+                font-size: 10pt;
+                font-weight: 400;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Theme Generator</h1>
+        <h3>Recommendation-Engine Test</h3>
+        <div class="editor-wrapper">
+            <span class="color-1">var</span> express <span class="color-1">=</span> require(<span class="color-2">'express'</span>);<br/>
+            <span class="color-1">var</span> app <span class="color-1">=</span> <span class="color-3">express</span>();<br/>
+            <span class="color-1">var</span> path <span class="color-1">=</span> require(<span class="color-2">'path'</span>);<br/>
+            <br/>
+            app.<span class="color-3">get</span>(<span class="color-2">'/'</span>, <span class="color-1">function</span>(req, res) {<br/>
+            res.<span class="color-3">sendFile</span>(path.<span class="color-3">join</span>(__dirname&nbsp;+&nbsp;<span class="color-2">'/index.html'</span>));<br/>
+            });<br/>
+            <br/>
+            app.<span class="color-3">listen</span>(8080);
+        </div>
+        <hr/>
+        <button class="star" id="star1">★</button>
+        <button class="star" id="star2">★</button>
+        <button class="star" id="star3">★</button>
+        <button class="star" id="star4">★</button>
+        <button class="star" id="star5">★</button>
+        <hr/>
+        <h4>
+            (it often takes at least 20 ratings to get good recommendations)
+        </h4>
+        <div id="themes"></div>
+
+        <script>
+            const editorWrapper = document.querySelector(".editor-wrapper")
+            const colorOne = document.querySelectorAll(".color-1")
+            const colorTwo = document.querySelectorAll(".color-2")
+            const colorThree = document.querySelectorAll(".color-3")
+            const stars = document.querySelectorAll(".star")
+            const themes = document.getElementById("themes")
+
+            window.localStorage.trainingData = JSON.stringify([])
+
+
+            
+            const currentColors = {
+            back: {},
+            one: {},
+            two: {},
+            three: {},
+            }
+            
+            generateRandomTheme()
+            predictThemeCombinations()
+
+            stars.forEach((star, i) => {
+            const score = i / 4
+            star.addEventListener("mouseenter", setStars.bind(setStars, i))
+            star.addEventListener("mouseleave", clearStars)
+            star.addEventListener("click", saveTrainingData.bind(saveTrainingData, score))
+            })
+
+            function saveTrainingData(score) {
+            const data = JSON.parse(window.localStorage.trainingData)
+
+            data.push({
+                input: [
+                Math.round(currentColors.back.r/2.55) / 100,
+                Math.round(currentColors.back.g/2.55) / 100,
+                Math.round(currentColors.back.b/2.55) / 100,
+                Math.round(currentColors.one.r/2.55) / 100,
+                Math.round(currentColors.one.g/2.55) / 100,
+                Math.round(currentColors.one.b/2.55) / 100,
+                Math.round(currentColors.two.r/2.55) / 100,
+                Math.round(currentColors.two.g/2.55) / 100,
+                Math.round(currentColors.two.b/2.55) / 100,
+                Math.round(currentColors.three.r/2.55) / 100,
+                Math.round(currentColors.three.g/2.55) / 100,
+                Math.round(currentColors.three.b/2.55) / 100,
+                ],
+                output: [score]
+            })
+
+            window.localStorage.trainingData = JSON.stringify(data)
+
+
+            predictThemeCombinations()
+            clearStars()
+            generateRandomTheme()
+            }
+
+            
+            function predictThemeCombinations() {
+            const data = JSON.parse(window.localStorage.trainingData)
+            if (!data.length) {
+                return;
+            }
+
+            themes.innerHTML = ""
+            const net = new brain.NeuralNetwork({activation: "leaky-relu"});
+            const results = []
+
+            net.train(data)
+
+            for (let i = 0; i < 100000; i++) {
+                const back = getRandomBackgroundRgb()
+                const one = getRandomRgb()
+                const two = getRandomRgb()
+                const three = getRandomRgb()
+                const colors = [
+                Math.round(back.r/2.55) / 100, 
+                Math.round(back.g/2.55) / 100,
+                Math.round(back.b/2.55) / 100,
+                Math.round(one.r/2.55) / 100,
+                Math.round(one.g/2.55) / 100,
+                Math.round(one.b/2.55) / 100,
+                Math.round(two.r/2.55) / 100,
+                Math.round(two.g/2.55) / 100,
+                Math.round(two.b/2.55) / 100,
+                Math.round(three.r/2.55) / 100,
+                Math.round(three.g/2.55) / 100,
+                Math.round(three.b/2.55) / 100,
+                ]
+
+                const [ score ] = net.run(colors)
+                results.push({ back, one, two, three, score})
+            }
+
+            
+            const sortedResults = results.sort(function(a, b) {
+                var a = a.score
+                var b = b.score
+
+                return b - a
+            })
+
+            
+            for (let i = 0; i < 3; i++) {
+                addNewTheme(sortedResults[i])
+            }
+            }
+
+            function addNewTheme({back, one, two, three, score}) {
+            const newTheme = document.createElement("div")
+            newTheme.classList.add("predicted-theme")
+            newTheme.innerHTML = `
+            <div class="editor-wrapper" style="background:rgb(${back.r}, ${back.g}, ${back.b})">
+            
+            <span style="color:rgb(${one.r}, ${one.g}, ${one.b})">var</span> express <span style="color:rgb(${one.r}, ${one.g}, ${one.b})">=</span> require(<span style="color: rgb(${two.r}, ${two.g}, ${two.b})">'express'</span>);<br/>
+            <span style="color:rgb(${one.r}, ${one.g}, ${one.b})">var</span> app <span style="color:rgb(${one.r}, ${one.g}, ${one.b})">=</span> <span style="color: rgb(${three.r}, ${three.g}, ${three.b})">express</span>();<br/>
+            <span style="color:rgb(${one.r}, ${one.g}, ${one.b})">var</span> path <span style="color:rgb(${one.r}, ${one.g}, ${one.b})">=</span> require(<span style="color: rgb(${two.r}, ${two.g}, ${two.b})">'path'</span>);<br/>
+            <br/>
+            app.<span style="color: rgb(${three.r}, ${three.g}, ${three.b})">get</span>(<span style="color:rgb(${one.r}, ${one.g}, ${one.b})">'/'</span>, <span style="color:rgb(${one.r}, ${one.g}, ${one.b})">function</span> (req, res) {<br/>
+            res.<span style="color: rgb(${three.r}, ${three.g}, ${three.b})">sendFile</span>(path.<span style="color: rgb(${three.r}, ${three.g}, ${three.b})">join</span>(__dirname&nbsp;+&nbsp;<span style="color: rgb(${two.r}, ${two.g}, ${two.b})">'/index.html'</span>));<br/>
+            });<br/>
+            <br/>
+            app.<span style="color: rgb(${three.r}, ${three.g}, ${three.b})">listen</span>(8080);
+            </div>
+            <li>Score ${score}</li>
+            <li>Background rgb(${back.r}, ${back.g}, ${back.b})</li>
+            <li>Color 1 rgb(${one.r}, ${one.g}, ${one.b})</li>
+            <li>Color 2 rgb(${two.r}, ${two.g}, ${two.b})</li>
+            <li>Color 3 rgb(${three.r}, ${three.g}, ${three.b})</li>
+            `
+            themes.appendChild(newTheme)
+            }
+
+            function setStars(whichStar) {
+            for (let i = 0; i < stars.length; i++) {
+                stars[i].classList.add("gold")
+                if (i >= whichStar) {
+                break;
+                }
+            }
+            }
+
+            function clearStars() {
+            for (const star of stars) {
+                star.classList.remove("gold")
+            }
+            }
+            function generateRandomTheme() {
+            currentColors.back = getRandomBackgroundRgb()
+            currentColors.one = getRandomRgb()
+            currentColors.two = getRandomRgb()
+            currentColors.three = getRandomRgb()
+
+            editorWrapper.style.background = `rgb(${currentColors.back.r},${currentColors.back.g},${currentColors.back.b})`
+            for (let color of colorOne) {
+                color.style.color = `rgb(${currentColors.one.r},${currentColors.one.g},${currentColors.one.b})`
+            }
+            for (let color of colorTwo) {
+                color.style.color = `rgb(${currentColors.two.r},${currentColors.two.g},${currentColors.two.b})`
+            }
+            for (let color of colorThree) {
+                color.style.color = `rgb(${currentColors.three.r},${currentColors.three.g},${currentColors.three.b})`
+            }
+            }
+
+            function getRandomRgb() {
+            return {
+                r: Math.round(Math.random()*205 + 50), 
+                g: Math.round(Math.random()*205 + 50),
+                b: Math.round(Math.random()*205 + 50),
+            }
+            }
+
+            function getRandomBackgroundRgb() {
+            return {
+                r: Math.round(Math.random()*50), 
+                g: Math.round(Math.random()*50),
+                b: Math.round(Math.random()*50),
+            }
+            }
+
+        </script>
+
+        <script src="https://unpkg.com/brain.js@1.1.2/browser.min.js"></script>
+    </body>
+</html>
